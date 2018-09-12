@@ -17,14 +17,9 @@ Keys:
     b     - toggle back-projected probability visualization
 '''
 
-# Python 2/3 compatibility
 from __future__ import print_function
 import sys
-PY3 = sys.version_info[0] == 3
-
-if PY3:
-    xrange = range
-
+import math
 import numpy as np
 import cv2 as cv
 
@@ -45,20 +40,28 @@ class App(object):
         self.show_backproj = False
         self.track_window = None
         self.history = []
+        self.paint_active = False
+        self.selection_completed = False
 
     def onmouse(self, event, x, y, flags, param):
-        if event == cv.EVENT_LBUTTONDOWN:
-            self.drag_start = (x, y)
-            self.track_window = None
-        if self.drag_start:
-            xmin = min(x, self.drag_start[0])
-            ymin = min(y, self.drag_start[1])
-            xmax = max(x, self.drag_start[0])
-            ymax = max(y, self.drag_start[1])
-            self.selection = (xmin, ymin, xmax, ymax)
-        if event == cv.EVENT_LBUTTONUP:
-            self.drag_start = None
-            self.track_window = (xmin, ymin, xmax - xmin, ymax - ymin)
+        if not self.selection_completed:
+            if event == cv.EVENT_LBUTTONDOWN:
+                self.drag_start = (x, y)
+                self.track_window = None
+            if self.drag_start:
+                xmin = min(x, self.drag_start[0])
+                ymin = min(y, self.drag_start[1])
+                xmax = max(x, self.drag_start[0])
+                ymax = max(y, self.drag_start[1])
+                self.selection = (xmin, ymin, xmax, ymax)
+            if event == cv.EVENT_LBUTTONUP:
+                self.drag_start = None
+                self.track_window = (xmin, ymin, xmax - xmin, ymax - ymin)
+                self.selection_completed = True
+
+        else:
+            if event == cv.EVENT_LBUTTONDOWN:
+                self.paint_active = not self.paint_active
 
     def run(self):
         while True:
@@ -66,7 +69,7 @@ class App(object):
             self.frame = cv.flip(self.frame, 1)
             vis = self.frame.copy()
             hsv = cv.cvtColor(self.frame, cv.COLOR_BGR2HSV)
-            mask = cv.inRange(hsv, np.array((0., 60., 32.)), np.array((180., 255., 255.)))
+            mask = cv.inRange(hsv, np.array((70., 100., 0.)), np.array((150., 255., 255.)))
 
             if self.selection:
                 x0, y0, x1, y1 = self.selection
@@ -89,20 +92,19 @@ class App(object):
 
                 if self.show_backproj:
                     vis[:] = prob[...,np.newaxis]
-                try:
-                    cv.ellipse(vis, track_box, (0, 0, 255), 2)
-                    self.history.append(track_box)
 
-                except:
-                    print(track_box)
+                cv.ellipse(vis, track_box, (0, 0, 255), 2)
+
+                if self.paint_active:
+                    self.add_to_history(track_box)
 
                 if self.history:
                     for i in range(0, len(self.history) - 1):
-                        start_point_x = int(self.history[i][0][0])
-                        start_point_y = int(self.history[i][0][1])
+                        start_point_x = int(self.history[i][0])
+                        start_point_y = int(self.history[i][1])
 
-                        end_point_x = int(self.history[i + 1][0][0])
-                        end_point_y = int(self.history[i + 1][0][1])
+                        end_point_x = int(self.history[i + 1][0])
+                        end_point_y = int(self.history[i + 1][1])
 
                         cv.line(vis, (start_point_x, start_point_y), (end_point_x, end_point_y), (0, 255, 0), 2)
 
@@ -114,6 +116,28 @@ class App(object):
             if ch == ord('b'):
                 self.show_backproj = not self.show_backproj
         cv.destroyAllWindows()
+
+    def add_to_history(self, track_box):
+        max_jump = 30000
+
+        point_is_reasonable = None
+
+        x = track_box[0][0]
+        y = track_box[0][1]
+
+        if len(self.history) >= 2:
+            last_x = self.history[-1][0]
+            last_y = self.history[-1][1]
+
+            distance = math.hypot(last_x - x, last_y - y)
+
+            if distance < max_jump:
+                point_is_reasonable = True
+        else:
+            point_is_reasonable = True
+
+        if point_is_reasonable:
+            self.history.append((x, y))
 
 
 if __name__ == '__main__':
