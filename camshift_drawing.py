@@ -44,27 +44,26 @@ def read_frame_from_camera(camera):
     return frame
 
 
-class Segments:
-    def __init__(self):
-        self.segments = []
+class Canvas:
+    def __init__(self, existing_image):
+        # existing_image determines size of paint image
+        self.image = existing_image.copy()
+        self.image[:] = (0, 0, 0)
 
-    def new_segment(self):
-        self.segments.append([])
+        self.last_point = None
+        self.next_point_disconnected = False
 
-    def add_to_last_segment(self, point):
-        self.segments[-1].append(point)
+    def add_point(self, point):
+        if not self.next_point_disconnected:
+            if self.last_point:
+                cv.line(self.image, self.last_point, point, (0, 255, 0), 2)
+        else:
+            self.next_point_disconnected = False
 
-    def draw(self, destination):
-        for segment in self.segments:
-            if len(segment) >= 2:
-                for i in range(len(segment) - 1):
-                    start_point_x = int(segment[i][0])
-                    start_point_y = int(segment[i][1])
+        self.last_point = point
 
-                    end_point_x = int(segment[i + 1][0])
-                    end_point_y = int(segment[i + 1][1])
-
-                    cv.line(destination, (start_point_x, start_point_y), (end_point_x, end_point_y), (0, 255, 0), 2)
+    def add_gap(self):
+        self.next_point_disconnected = True
 
 
 class App:
@@ -81,14 +80,14 @@ class App:
         self.user_selection_box = None
         self.drag_start = None
         self.track_window = None
-        self.paint_active = False
         self.selection_completed = False
 
         self.show_backproj = False
 
-        # list of points drawn by user
-        self.segments = Segments()
-        self.segments.new_segment()
+        # image we paint on
+        self.canvas = Canvas(self.frame)
+        self.paint_active = False
+
 
     def onmouse(self, event, x, y, flags, param):
         # if no selection has been made, treat the event as creating the selection
@@ -114,7 +113,7 @@ class App:
                 became_active = self.paint_active
 
                 if became_active:
-                    self.segments.new_segment()
+                    self.canvas.add_gap()
 
     def run(self):
         while True:
@@ -156,39 +155,16 @@ class App:
             if self.show_backproj:
                 final_img[:] = prob[...,np.newaxis]
 
+            if self.paint_active:
+                x = int(track_box[0][0])
+                y = int(track_box[0][1])
+                point = (x, y)
+                self.canvas.add_point(point)
+
+            final_img = cv.add(final_img, self.canvas.image)
             cv.ellipse(final_img, track_box, (0, 0, 255), 2)
 
-            if self.paint_active:
-                x = track_box[0][0]
-                y = track_box[0][1]
-                point = (x, y)
-                self.segments.add_to_last_segment(point)
-
-            self.segments.draw(final_img)
-
         cv.imshow('camshift', final_img)
-
-    def add_to_history(self, track_box):
-        max_jump = 30000
-
-        point_is_reasonable = None
-
-        x = track_box[0][0]
-        y = track_box[0][1]
-
-        if len(self.history) >= 2:
-            last_x = self.history[-1][0]
-            last_y = self.history[-1][1]
-
-            distance = math.hypot(last_x - x, last_y - y)
-
-            if distance < max_jump:
-                point_is_reasonable = True
-        else:
-            point_is_reasonable = True
-
-        if point_is_reasonable:
-            self.history.append((x, y))
 
 
 if __name__ == '__main__':
