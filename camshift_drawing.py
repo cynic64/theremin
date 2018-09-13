@@ -146,7 +146,8 @@ class App:
         self.frame = read_frame_from_camera(self.cam)
         final_img = self.frame.copy()
         hsv = cv.cvtColor(self.frame, cv.COLOR_BGR2HSV)
-        mask = cv.inRange(hsv, np.array((70., 100., 50.)), np.array((150., 255., 255.)))
+        # mask = cv.inRange(hsv, np.array((70., 100., 50.)), np.array((150., 255., 255.)))
+        mask = cv.inRange(hsv, np.array((0., 60., 32.)), np.array((180., 255., 255.)))
 
         if self.user_selection_box:
             x0, y0, x1, y1 = self.user_selection_box
