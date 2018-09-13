@@ -26,6 +26,11 @@ import cv2 as cv
 import video
 from video import presets
 
+# colors (in BGR, idk why)
+RED = (0, 0, 255)
+GREEN = (0, 255, 0)
+BLUE = (255, 0, 0)
+
 
 def get_video_source():
     video_src = 0
@@ -52,11 +57,12 @@ class Canvas:
 
         self.last_point = None
         self.next_point_disconnected = False
+        self.color = GREEN
 
     def add_point(self, point):
         if not self.next_point_disconnected:
             if self.last_point:
-                cv.line(self.image, self.last_point, point, (0, 255, 0), 2)
+                cv.line(self.image, self.last_point, point, self.color, 2)
         else:
             self.next_point_disconnected = False
 
@@ -64,6 +70,12 @@ class Canvas:
 
     def add_gap(self):
         self.next_point_disconnected = True
+
+    def change_color(self):
+        if self.color == GREEN:
+            self.color = BLUE
+        else:
+            self.color = GREEN
 
 
 class App:
@@ -115,6 +127,9 @@ class App:
                 if became_active:
                     self.canvas.add_gap()
 
+            elif event == cv.EVENT_RBUTTONDOWN:
+                self.canvas.change_color()
+
     def run(self):
         while True:
             self.update()
@@ -146,6 +161,7 @@ class App:
             final_img[mask == 0] = 0
 
         if self.track_window and self.track_window[2] > 0 and self.track_window[3] > 0:
+            final_img[:] = (0, 0, 0)
             self.user_selection_box = None
             prob = cv.calcBackProject([hsv], [0], self.hist, [0, 180], 1)
             prob &= mask
