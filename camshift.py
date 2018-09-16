@@ -60,7 +60,8 @@ class CamshiftTracker:
 
                 # compute histogram for selection
                 hsv = cv.cvtColor(self.frame, cv.COLOR_BGR2HSV)
-                mask = cv.inRange(hsv, np.array((70., 100., 50.)), np.array((150., 255., 255.)))
+                # mask = cv.inRange(hsv, np.array((70., 100., 50.)), np.array((150., 255., 255.)))
+                mask = cv.inRange(hsv, np.array((0., 75., 50.)), np.array((255., 255., 255.)))
 
                 x0, y0, x1, y1 = self.user_selection_box
                 hsv_roi = hsv[y0:y1, x0:x1]
