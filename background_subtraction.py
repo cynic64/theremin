@@ -43,6 +43,10 @@ if ret is True:
 else:
     run = False
 
+# read image to put background over
+img = cv2.imread('backgrounds/paris-1-.png', cv2.COLOR_BGR)
+print(img.shape)
+
 while(run):
     # Read a frame from the camera
     ret,frame = cam.read()
@@ -61,6 +65,9 @@ while(run):
         ret, mask = cv2.threshold(foreGround, 50, 255, cv2.THRESH_BINARY)
         mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
         frame &= mask
+        print(frame.shape)
+
+        frame = cv2.add(frame, img)
 
         # Note: The mask is displayed as a RGB image, you can
         # display a grayscale image by converting 'foreGround' to
