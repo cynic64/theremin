@@ -42,17 +42,23 @@ class BackGroundSubtractor:
     def __init__(self,alpha,firstFrame):
         self.alpha  = alpha
         self.backGroundModel = firstFrame
+        self.counter = 0
 
     def getForeground(self,frame):
         # apply the background averaging formula:
         # NEW_BACKGROUND = CURRENT_FRAME * ALPHA + OLD_BACKGROUND * (1 - APLHA)
-        # self.backGroundModel =  frame * self.alpha + self.backGroundModel * (1 - self.alpha)
+        if self.counter < 200:
+            self.backGroundModel =  frame * self.alpha + self.backGroundModel * (1 - self.alpha)
+        else:
+            print('done')
 
         # after the previous operation, the dtype of
         # self.backGroundModel will be changed to a float type
         # therefore we do not pass it to cv2.absdiff directly,
         # instead we acquire a copy of it in the uint8 dtype
         # and pass that to absdiff.
+
+        self.counter += 1
 
         return cv2.absdiff(self.backGroundModel.astype(np.uint8),frame)
 
@@ -93,7 +99,7 @@ while(run):
         # Note: The mask is displayed as a RGB image, you can
         # display a grayscale image by converting 'foreGround' to
         # a grayscale before applying the threshold.
-        cv2.imshow('mask', frame)
+        cv2.imshow('mask', mask)
 
         key = cv2.waitKey(10) & 0xFF
     else:
