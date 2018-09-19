@@ -2,10 +2,6 @@ import cv2 as cv
 import sys
 import os
 
-# local modules
-import camshift as cs
-import timing
-
 class Theremin:
     def __init__(self):
         self.path = 'tones/pure/'
@@ -39,48 +35,53 @@ class Theremin:
         self.volume = volume
 
 
-ct = cs.CamshiftTracker()
-cv.namedWindow("main")
+if __name__ == "__main__":
+    # local modules needed
+    import camshift as cs
+    import timing
 
-# first wait for the user to press s,
-# then take a selection
-while True:
-    ch = cv.waitKey(5)
+    ct = cs.CamshiftTracker()
+    cv.namedWindow("main")
 
-    if ch == 27:
-        # escape pressed
-        sys.exit()
-    elif ch == ord("s"):
-        # create a selection
-        ct.ask_for_selection()
-        break
+    # first wait for the user to press s,
+    # then take a selection
+    while True:
+        ch = cv.waitKey(5)
 
-    ct.read_frame()
-    cv.imshow("main", ct.get_last_frame())
+        if ch == 27:
+            # escape pressed
+            sys.exit()
+        elif ch == ord("s"):
+            # create a selection
+            ct.ask_for_selection()
+            break
 
-tm = Theremin()
-tm.start()
-# now track that
-while True:
-    ch = cv.waitKey(5)
+        ct.read_frame()
+        cv.imshow("main", ct.get_last_frame())
 
-    if ch == 27:
-        # escape pressed
-        break
+    tm = Theremin()
+    tm.start()
+    # now track that
+    while True:
+        ch = cv.waitKey(5)
 
-    ct.update_all()
-    frame = ct.get_last_frame()
+        if ch == 27:
+            # escape pressed
+            break
 
-    cv.ellipse(frame, ct.track_box, (0, 0, 255), 2)
+        ct.update_all()
+        frame = ct.get_last_frame()
 
-    cv.imshow("main", frame)
+        cv.ellipse(frame, ct.track_box, (0, 0, 255), 2)
 
-    print(ct.point)
-    tone = (100 - ct.point[1] // 5)
-    vol = ct.point[0] // 5
-    tm.set_tone(tone)
-    tm.set_volume(vol)
+        cv.imshow("main", frame)
 
-# cleanup!
-tm.stop()
-cv.destroyAllWindows()
+        print(ct.point)
+        tone = (100 - ct.point[1] // 5)
+        vol = ct.point[0] // 5
+        tm.set_tone(tone)
+        tm.set_volume(vol)
+
+    # cleanup!
+    tm.stop()
+    cv.destroyAllWindows()
