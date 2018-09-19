@@ -9,22 +9,31 @@ class BackGroundSubtractor:
         self.avg_frames = 1
         self.alpha = 1 / self.avg_frames
         self.backGroundModel = firstFrame
-        self.updates = 0
+        self.counter = 0
 
     def getForeground(self, frame):
-        if self.updates < self.avg_frames:
-            # apply the background averaging formula:
-            # NEW_BACKGROUND = CURRENT_FRAME * ALPHA + OLD_BACKGROUND * (1 - APLHA)
+        # apply the background averaging formula:
+        # NEW_BACKGROUND = CURRENT_FRAME * ALPHA + OLD_BACKGROUND * (1 - APLHA)
+        # '''
+        if self.counter < 200:
             self.backGroundModel =  frame * self.alpha + self.backGroundModel * (1 - self.alpha)
+        else:
+            print('done')
 
-        self.updates += 1
+        self.counter += 1
 
-        # after the previous operation, the dtype of
-        # self.backGroundModel will be changed to a float type
-        # therefore we do not pass it to cv2.absdiff directly,
-        # instead we acquire a copy of it in the uint8 dtype
-        # and pass that to absdiff.
-        return cv2.absdiff(self.backGroundModel.astype(np.uint8),frame)
+        diff = cv2.absdiff(self.backGroundModel.astype(np.uint8),frame)
+        gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+        rgb_gray = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+        return rgb_gray
+        # '''
+
+        # hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        # green_mask = cv2.inRange(hsv, np.array((50., 10., 00.)), np.array((120., 255., 255.)))
+
+        # mask_inv = cv2.bitwise_not(green_mask)
+        # return mask_inv
 
 cam = cv2.VideoCapture(0)
 
@@ -36,6 +45,20 @@ def denoise(frame):
     
     return frame
 
+
+def onmouse(event, x, y, flags, param):
+    global thresh
+    # if no selection has been made, treat the event as creating the selection
+    if event == cv2.EVENT_LBUTTONDOWN:
+        if thresh < 255:
+            print('up!')
+            thresh += 1
+    elif event == cv2.EVENT_RBUTTONDOWN:
+        if thresh > 0:
+            print('down!')
+            thresh -= 1
+
+
 ret, frame = cam.read()
 if ret is True:
     backSubtractor = BackGroundSubtractor(denoise(frame))
@@ -44,8 +67,15 @@ else:
     run = False
 
 # read image to put background over
-img = cv2.imread('backgrounds/paris-1-.png', cv2.COLOR_BGR)
+img = cv2.imread('backgrounds/paris-1-.png')
 print(img.shape)
+
+cv2.namedWindow('mask')
+cv2.namedWindow('input')
+cv2.setMouseCallback('mask', onmouse)
+cv2.setMouseCallback('input', onmouse)
+
+thresh = 45
 
 while(run):
     # Read a frame from the camera
@@ -58,16 +88,19 @@ while(run):
 
         # get the foreground
         foreGround = backSubtractor.getForeground(denoise(frame))
-        foreGround = cv2.cvtColor(foreGround, cv2.COLOR_BGR2GRAY)
+        # foreGround = cv2.cvtColor(foreGround, cv2.COLOR_BGR2GRAY)
 
         # Apply thresholding on the background and display the resulting mask
-        mask = foreGround
-        ret, mask = cv2.threshold(foreGround, 50, 255, cv2.THRESH_BINARY)
-        mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+        ret, mask = cv2.threshold(foreGround, thresh, 255, cv2.THRESH_BINARY)
+        ret, mask_inv = cv2.threshold(foreGround, thresh, 255, cv2.THRESH_BINARY_INV)
         frame &= mask
-        print(frame.shape)
+        masked_img = img & mask_inv
 
-        frame = cv2.add(frame, img)
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        nogreen_mask = cv2.inRange(hsv, np.array((70., 20., 00.)), np.array((150., 255., 255.)))
+        frame &= cv2.cvtColor(cv2.bitwise_not(nogreen_mask), cv2.COLOR_GRAY2BGR)
+
+        frame = cv2.add(frame, masked_img)
 
         # Note: The mask is displayed as a RGB image, you can
         # display a grayscale image by converting 'foreGround' to
