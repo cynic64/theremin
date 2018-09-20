@@ -2,6 +2,9 @@ import cv2 as cv
 import sys
 import os
 
+# local module
+import timing
+
 class Theremin:
     def __init__(self):
         self.path = 'tones/pure/'
@@ -38,7 +41,6 @@ class Theremin:
 if __name__ == "__main__":
     # local modules needed
     import camshift as cs
-    import timing
 
     ct = cs.CamshiftTracker()
     cv.namedWindow("main")

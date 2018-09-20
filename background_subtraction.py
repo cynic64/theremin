@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 
-class BackGroundSubtractor:
+class BackSub:
     def __init__(self, firstFrame):
         # by default, uses only the first 200 frames
         # to compute a background
@@ -26,16 +26,16 @@ class BackGroundSubtractor:
         return rgb_gray
 
 
+def denoise(frame):
+    frame = cv2.medianBlur(frame, 5)
+    frame = cv2.GaussianBlur(frame, (5, 5), 0)
+    
+    return frame
+
+
 if __name__ == "__main__":
     # Just a simple function to perform
     # some filtering before any further processing.
-    def denoise(frame):
-        frame = cv2.medianBlur(frame, 5)
-        frame = cv2.GaussianBlur(frame, (5, 5), 0)
-        
-        return frame
-
-
     def onmouse(event, x, y, flags, param):
         # increases or decreases threshold.
         global thresh
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     cam = cv2.VideoCapture(0)
     ret, frame = cam.read()
     if ret is True:
-        backSubtractor = BackGroundSubtractor(denoise(frame))
+        backSubtractor = BackSub(denoise(frame))
         run = True
     else:
         run = False
