@@ -38,7 +38,7 @@ from numpy import pi, sin, cos
 import cv2 as cv
 
 # built-in modules
-from time import clock
+from time import process_time as clock
 
 # local modules
 from tst_scene_render import TestSceneRender
