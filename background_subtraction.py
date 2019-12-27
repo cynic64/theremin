@@ -44,7 +44,9 @@ if __name__ == "__main__":
 
     cam = cv2.VideoCapture(0)
     ret, frame = cam.read()
-    if ret is True:
+    cam_height, cam_width, _channels = frame.shape
+
+    if ret:
         backSubtractor = BackSub(denoise(frame))
         run = True
     else:
@@ -52,7 +54,7 @@ if __name__ == "__main__":
 
     # read image to put background over
     img = cv2.imread('backgrounds/paris-1-.png')
-    print(img.shape)
+    img = cv2.resize(img, (cam_width, cam_height))
 
     cv2.namedWindow('mask')
     cv2.setMouseCallback('mask', onmouse)
@@ -78,18 +80,6 @@ if __name__ == "__main__":
             final = cv2.add(frame, masked_img)
 
             # Apply thresholding on the background and display the resulting mask
-            '''
-            ret, mask = cv2.threshold(foreGround, thresh, 255, cv2.THRESH_BINARY)
-            ret, mask_inv = cv2.threshold(foreGround, thresh, 255, cv2.THRESH_BINARY_INV)
-            frame &= mask
-            masked_img = img & mask_inv
-
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            nogreen_mask = cv2.inRange(hsv, np.array((70., 20., 00.)), np.array((150., 255., 255.)))
-            frame &= cv2.cvtColor(cv2.bitwise_not(nogreen_mask), cv2.COLOR_GRAY2BGR)
-
-            frame = cv2.add(frame, masked_img)
-            '''
 
             # Note: The mask is displayed as a RGB image, you can
             # display a grayscale image by converting 'foreGround' to
