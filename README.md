@@ -24,3 +24,6 @@ You'll need python 3.8 and opencv-python:
 pip3 install --user opencv-python
 ```
 Then just cd to the directory you cloned into and run whichever file you want.
+
+## Licensing
+Because I've taken large chunks of code from the OpenCV samples, the license is the same as theirs and includes all the original copyright notices.
