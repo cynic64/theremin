@@ -25,10 +25,21 @@ class Theremin:
 
         self.rep_timer.stop()
 
+    def toggle(self):
+        if self.rep_timer.is_running:
+            self.stop()
+        else:
+            self.start()
+
     def update(self):
         path = '{}{:02d}.wav'.format(self.path, self.current_tone)
-        print(path)
-        command = 'mplayer {} -volume {} &'.format(path, self.volume)
+        # print(path)
+
+        # use this on mac
+        # command = 'afplay {} -v {} &'.format(path, (self.volume // 10 +1))
+
+        # use this on linux
+        command = 'mplayer -really-quiet -af volume={} {} 2>&1 > /dev/null &'.format(int((self.volume / 100 - 1.0) * 20), path)
         os.system(command)
 
     def set_tone(self, tone):
@@ -63,6 +74,8 @@ if __name__ == "__main__":
 
     tm = Theremin()
     tm.start()
+    print(ct.get_last_frame().shape)
+    height, width, channels = ct.get_last_frame().shape
     # now track that
     while True:
         ch = cv.waitKey(5)
@@ -78,9 +91,9 @@ if __name__ == "__main__":
 
         cv.imshow("main", frame)
 
-        print(ct.point)
-        tone = (100 - ct.point[1] // 5)
-        vol = ct.point[0] // 5
+        tone = int(ct.point[0] / width * 100)
+        vol = int((1 - (ct.point[1] / height)) * 200)
+        print('t: {}, v: {}'.format(tone, vol))
         tm.set_tone(tone)
         tm.set_volume(vol)
 

@@ -12,24 +12,18 @@ class BackSub:
         self.counter = 0
 
     def getForeground(self, frame):
-        if self.counter < 200:
-            self.backGroundModel =  frame * self.alpha + self.backGroundModel * (1 - self.alpha)
-        elif self.counter == 200:
-            print('done')
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        green = cv2.inRange(hsv, np.array((50., 10., 0.)), np.array((200., 255, 170.0)))
+        not_green = cv2.bitwise_not(green)
+        not_green = cv2.cvtColor(not_green, cv2.COLOR_GRAY2BGR)
 
-        self.counter += 1
-
-        diff = cv2.absdiff(self.backGroundModel.astype(np.uint8),frame)
-        gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-        rgb_gray = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
-
-        return rgb_gray
+        return not_green
 
 
 def denoise(frame):
     frame = cv2.medianBlur(frame, 5)
     frame = cv2.GaussianBlur(frame, (5, 5), 0)
-    
+
     return frame
 
 
@@ -61,26 +55,30 @@ if __name__ == "__main__":
     print(img.shape)
 
     cv2.namedWindow('mask')
-    cv2.namedWindow('input')
     cv2.setMouseCallback('mask', onmouse)
-    cv2.setMouseCallback('input', onmouse)
 
     thresh = 45
 
     while(run):
         # Read a frame from the camera
-        ret,frame = cam.read()
+        ret, frame = cam.read()
 
         # If the frame was properly read.
         if ret is True:
             # Show the filtered image
-            cv2.imshow('input',denoise(frame))
 
             # get the foreground
-            foreGround = backSubtractor.getForeground(denoise(frame))
+            fgmask = backSubtractor.getForeground(denoise(frame))
             # foreGround = cv2.cvtColor(foreGround, cv2.COLOR_BGR2GRAY)
+            frame &= fgmask
+
+            mask_inv = cv2.bitwise_not(fgmask)
+            masked_img = img & mask_inv
+
+            final = cv2.add(frame, masked_img)
 
             # Apply thresholding on the background and display the resulting mask
+            '''
             ret, mask = cv2.threshold(foreGround, thresh, 255, cv2.THRESH_BINARY)
             ret, mask_inv = cv2.threshold(foreGround, thresh, 255, cv2.THRESH_BINARY_INV)
             frame &= mask
@@ -91,11 +89,12 @@ if __name__ == "__main__":
             frame &= cv2.cvtColor(cv2.bitwise_not(nogreen_mask), cv2.COLOR_GRAY2BGR)
 
             frame = cv2.add(frame, masked_img)
+            '''
 
             # Note: The mask is displayed as a RGB image, you can
             # display a grayscale image by converting 'foreGround' to
             # a grayscale before applying the threshold.
-            cv2.imshow('mask', frame)
+            cv2.imshow('mask', final)
 
             key = cv2.waitKey(10) & 0xFF
         else:
